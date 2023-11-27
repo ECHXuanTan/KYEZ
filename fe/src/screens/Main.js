@@ -11,7 +11,7 @@ export default function Main() {
         <h1 className='title text-light'>Quiz Application</h1>
 
         <form id="form">
-        <input ref={inputRef} className="userid" type="text" placeholder='Username*' />
+            <input ref={inputRef} className="userid" type="text" placeholder='Username*' />
         </form>
 
         <div className='start'>
