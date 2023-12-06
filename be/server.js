@@ -5,6 +5,8 @@ import cors from 'cors';
 import axios from 'axios';
 import userRouter from "./routes/userRoutes.js";
 import testRouter from "./routes/testRoutes.js";
+import resultRouter from "./routes/resultRoutes.js";
+
 dotenv.config();
 
 mongoose
@@ -23,6 +25,7 @@ app.use(cors());
 
 app.use('/api/users', userRouter);
 app.use('/api/tests', testRouter);
+app.use('/api/results', resultRouter);
 
 app.get('/api/get-speech-token', async (req, res, next) => {
   res.setHeader('Content-Type', 'application/json');

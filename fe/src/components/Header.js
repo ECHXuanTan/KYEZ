@@ -13,6 +13,7 @@ function Header() {
     const dispatch = useDispatch()
 
     const logoutHandler = () => {
+        
         dispatch(logout())
     }
 
