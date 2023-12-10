@@ -3,14 +3,18 @@ import { useDispatch, useSelector } from 'react-redux'
 import { Link, useParams, useNavigate } from 'react-router-dom'
 import { Container } from 'reactstrap';
 import { Button, Card, Form} from 'react-bootstrap'
+import { toast, ToastContainer } from 'react-toastify';
 import '../styles/TestScreen.css'
 import Loader from '../components/Loader'
 import Message from '../components/Message'
 import { listTestDetails } from '../actions/testActions'
 import { getTokenOrRefresh } from '../actions/testActions';
+import { getPhrase } from '../actions/testActions';
 import { storage } from '../firebase';
 import { ref,  uploadBytes, getDownloadURL } from 'firebase/storage';
 import { v4 } from "uuid";
+import { createResult } from '../actions/resultActions';
+import { RESULT_CREATE_RESET } from '../constants/resultConstants';
 
 const speechsdk = require('microsoft-cognitiveservices-speech-sdk')
 
@@ -20,7 +24,7 @@ function TestScreen() {
     const testDetails = useSelector(state => state.testDetails)
     const { loading, error, test } = testDetails
     const { id } = useParams();
-
+    
     useEffect(() => {
         dispatch(listTestDetails(id))
       }, [dispatch, id]);
@@ -36,23 +40,26 @@ function TestScreen() {
     const [mediaRecorder, setMediaRecorder] = useState(null);  
     const [audioURL, setAudioURL] = useState('');
     const [texts, setTexts] = useState([]);
-    const [duplicates, setDuplicates] = useState([]);
-    const [uniqueWords, setUniqueWords] = useState(new Set());
     const [audioUploadURL, setAudioUploadURL] = useState('');
+    const [resultURL1, setResultURL1] = useState('');
+    const [resultTexts, setResultTexts] = useState([]);
+    const [duplicates, setDuplicates] = useState([]);
+    const [keywords1, setKeywords1] = useState([]);
+    const [keywords2, setKeywords2] = useState([]);
     // Test time
   
     const [testState, setTestState] = useState('preparation');
 
     // Timers  
     const [prepTime, setPrepTime] = useState(300); 
-    const [testTime, setTestTime] = useState(120);
+    const [testTime, setTestTime] = useState(10);
 
     // UI Elements
     const [showStart, setShowStart] = useState(true);
     const [showNext, setShowNext] = useState(false);
     const [showResults, setShowResults] = useState(false);
     const [curQuestion, setCurQuestion] = useState(1);
-
+    
 
     useEffect(() => {
     
@@ -94,7 +101,7 @@ function TestScreen() {
     function nextQuestion() {
       setShowQ1(false);
       setShowQ2(true);
-      setTestTime(120);
+      setTestTime(10);
       setPrepTime(300);
       setTexts([]);
       setShowNext(false);
@@ -102,6 +109,8 @@ function TestScreen() {
       setTestState('preparation');
       setShowStart(true); 
       setCurQuestion(cur => cur + 1);
+      setResultURL1(audioUploadURL);
+      setResultTexts(texts);
     }
   
     function completeTest() {
@@ -110,9 +119,46 @@ function TestScreen() {
       setTestState('completed');
       setShowNext(true);
       setShowResults(true);
+      const myTexts = texts;
+      const doc = convertToStr(myTexts);
+      checkDuplicates(doc);
+      findMatchedKeyords1(test.keywords1, doc)
+      findMatchedKeyords2(test.keywords2, doc)
+      // console.log("texts",texts)
     }
 
     //////////////////////////////////////////////////////////// Test time
+
+
+    //save result
+    const resultCreate = useSelector(state => state.resultCreate)
+    const { result, resultError, success } = resultCreate
+    const history = useNavigate()
+
+    useEffect(() => {
+      if (success) {
+          history(`/main`)
+          dispatch({ type: RESULT_CREATE_RESET })
+      }
+  }, [success, history])
+    
+    function saveResult() {
+      dispatch(createResult({
+        testName: test.name,
+        question1: test.question1,
+        keywords1: test.keywords1,
+        answer1: resultTexts,
+        audioURL1: resultURL1,
+        question2: test.question2,
+        keywords2: test.keywords2,
+        answer2: texts,
+        audioURL2: audioUploadURL,
+    }))
+    }
+
+
+
+    //speech to text
 
     useEffect(() => {
         async function initialize() {
@@ -191,12 +237,13 @@ function TestScreen() {
                     });
                   });
                   console.log('Audio uploaded successfully!');
+                  console.log("audioUploadURL",audioUploadURL);
                   } catch (error) {
                   console.error('Error uploading audio:', error);
                 }
               
             });
-            console.log("audioUploadURL",audioUploadURL);
+            
 
             setMediaRecorder(recorder);
           });
@@ -222,35 +269,107 @@ function TestScreen() {
       
 
       // Check for duplicates
-      useEffect(() => {
-        if (recognizer) {
-          recognizer.recognized = (s, e) => {  
-            handleText(e.result.text, uniqueWords);
-          };
-        }
-      }, [recognizer])
+      function convertToStr(data) {
 
-
-      const handleText = (text, prevUnique) => {
-        const uniqueWords = new Set(prevUnique);
-        if (uniqueWords.has(text)) {
-          setDuplicates(prev => {
-            if (!prev.includes(text)) {
-              return [...prev, text];
-            } else {
-              return prev; 
+        let textStr = "";
+        
+        if(Array.isArray(data)) {
+          // array, convert each item
+          data.forEach(item => {
+            if (item !== undefined) { 
+              textStr += String(item);  
             }
           });
-        } else {
-          uniqueWords.add(text);
+        } else {  
+          // single item, convert directly 
+          textStr = String(data);
         }
-        setUniqueWords(uniqueWords);
+      
+        return textStr;
 
-        setTexts(prev => [...prev, text]);
       }
+
+      const checkDuplicates = async (doc) => {
+        const object = await getPhrase(doc)
+        
+        try {
+          const strs = object.phrase_list.phrase.map(p => p.str);
+          const wordCounts = {};
+    
+          strs.forEach(word => {
+            let cleanedWord = word.replace(/[\s,.!?]/g,'');
+            if(!wordCounts[cleanedWord]) {
+              wordCounts[cleanedWord] = 0; 
+            }
+            wordCounts[cleanedWord]++;
+          });
+          
+          const duplicates = [];
+          
+          for(let word in wordCounts) {
+            if(wordCounts[word] > 1) {
+              duplicates.push(word); 
+            }
+          }
+          
+          const filteredWords = duplicates.filter(word => {
+            return word && 
+              !/\s|\.|,|\?/.test(word); 
+          })
+          .filter(word => {
+            return word !== "。";
+          });
+          console.log(filteredWords.word); 
+          setDuplicates(filteredWords); 
+        } catch (error) {
+         
+          toast.error("Error getting duplicates");
+          throw error;
+        }        
+    
+      }
+
+
+      // Check for keywords
+      const findMatchedKeyords1= async (arr1, doc) => {
+        
+        let matchedKeyords = [];
+        const object = await getPhrase(doc)
+    
+        const arr2 = object.phrase_list.phrase.map(p => p.str);
+        arr1.forEach(word1 => {
+          if(arr2.includes(word1)) {
+            if(!matchedKeyords.includes(word1)) {
+              matchedKeyords.push(word1);  
+            }
+          }
+        });
+        setKeywords1(matchedKeyords);
+
+      }
+
+      const findMatchedKeyords2= async (arr1, doc) => {
+        
+        let matchedKeyords = [];
+        const object = await getPhrase(doc)
+    
+        const arr2 = object.phrase_list.phrase.map(p => p.str);
+        arr1.forEach(word1 => {
+          if(arr2.includes(word1)) {
+            if(!matchedKeyords.includes(word1)) {
+              matchedKeyords.push(word1);  
+            }
+          }
+        });
+        setKeywords2(matchedKeyords);
+
+      }
+
+
     
     /////////////////////////////////////////////////////
 
+    const textParagraph = convertToStr(texts);
 
     return(
         <div>
@@ -264,7 +383,7 @@ function TestScreen() {
                 < Message variant='danger'>{error}</ Message> 
             ) : (
             <div>
-                
+               
                <Container className="app-container">
 
                 {testState === 'preparation' && (
@@ -316,18 +435,47 @@ function TestScreen() {
                         {audioURL && 
                           <audio controls src={audioURL} />
                         }
-                  
-                        {texts.map(text => (
-                          <div key={text}>{text}</div>
-                        ))}
+                        <div>
+                        <p className="text-display"> 
+                          Nội dung đã nói: {textParagraph}
+                          </p>
+                        {curQuestion === 1 && 
+                        <p>
+                          Từ đề xuất: {test.keywords1.join(", ")}
+                          </p>
+                        }
+
+                          {curQuestion === 1 && 
+                          <p>
+                          Từ đề xuất hiện trong bài: {keywords1.join(", ")}
+                          </p>
+                         }
 
 
-                      <h3>Lỗi lặp từ</h3>
-                        {duplicates.map(text => 
-                          <div key={text}>{text}</div>  
-                        )} 
-                      </div>
+                        {curQuestion === 2 && 
+                            <p>
+                          Từ đề xuất: {test.keywords2.join(", ")}
+                          </p>
+                        }
+
+                        {curQuestion === 2 && 
+                          <p>
+                          Từ đề xuất hiện trong bài: {keywords2.join(", ")}
+                          </p>
+                         }
+                        
+                        <p>
+                          Lỗi lặp từ: {duplicates.join(", ")}
+                        </p>
+                                
+                        </div>
+
+                    </div>
                     }
+
+                    {curQuestion === 2 && <Button onClick={saveResult}>Lưu kết quả thi</Button>}
+                    {resultError && <Message variant='danger'>{resultError}</Message>}
+                    
                   </>
                 )}
                 </Container>

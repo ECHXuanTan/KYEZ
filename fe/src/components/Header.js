@@ -34,7 +34,9 @@ function Header() {
                                     <LinkContainer to='/profile'>
                                         <NavDropdown.Item>Tài khoản</NavDropdown.Item>
                                     </LinkContainer>
-
+                                    <LinkContainer to='/result'>
+                                        <NavDropdown.Item>Kết quả thi</NavDropdown.Item>
+                                    </LinkContainer>
                                     <NavDropdown.Item onClick={logoutHandler}>Đăng xuất</NavDropdown.Item>
 
                                 </NavDropdown>

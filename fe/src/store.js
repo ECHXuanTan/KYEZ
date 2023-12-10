@@ -11,6 +11,8 @@ import { testListReducer,
   testDetailsReducer,
 } from './reducers/testReducer'
 
+import { resultCreateReducer, resultListMyReducer } from './reducers/resultReducer';
+
 const reducer = combineReducers({
 
   userLogin: userLoginReducer,
@@ -20,6 +22,8 @@ const reducer = combineReducers({
   testList: testListReducer,
   testDetails: testDetailsReducer,
 
+  resultCreate: resultCreateReducer,
+  resultListMy: resultListMyReducer,
 })
 
 const userInfoFromStorage = localStorage.getItem('userInfo') ?

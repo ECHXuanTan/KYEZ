@@ -8,6 +8,7 @@ import LoginScreen from './screens/LoginScreen';
 import RegisterScreen from './screens/RegisterScreen.js';
 import MainScreen from './screens/Mainscreen.js';
 import TestScreen from './screens/TestScreen.js';
+import ResultScreen from './screens/ResultScreen.js';
 import Testcode from './screens/Testcode.js';
 
 function App() {
@@ -22,6 +23,7 @@ function App() {
        <Route path='/main' element={<MainScreen />} />
        <Route path='/test/:id' element={<TestScreen />} />
        <Route path='/testcode' element={<Testcode />} />
+       <Route path='/result' element={<ResultScreen />} />
        </Routes>
        </Container>
     </Router>

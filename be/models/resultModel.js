@@ -5,11 +5,11 @@ const resultSchema = new mongoose.Schema({
     testName: { type: String, required: true },
     question1: { type: String, required: true },
     keywords1: [{ type: String }],
-    answer1: [{ type: String }],
+    answer1: [{ type: Array }],
     audioURL1: [{ type: String }],
     question2: { type: String, required: true },
     keywords2: [{ type: String }],
-    answer2: [{ type: String }],
+    answer2: [{ type: Array }],
     audioURL2: [{ type: String }],  
   },
   {

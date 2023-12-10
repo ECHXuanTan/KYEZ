@@ -15,20 +15,21 @@ resultRouter.get(
 );
 
 resultRouter.post(
-    '/',
+    '/add',
     isAuth,
     expressAsyncHandler(async (req, res) => {
+      console.log(req.body.result);
       const newResult = new Result ({
         user: req.user._id,
-        testName: req.body.testName,
-        question1: req.body.question1,
-        keywords1: req.body.keywords1,
-        answer1: req.body.answer1,
-        audioName1: req.body.audioName1,
-        question2: req.body.question2,
-        keywords2: req.body.keywords2,
-        answer2: req.body.answer2,
-        audioName2: req.body.audioName2,
+        testName: req.body.result.testName,
+        question1: req.body.result.question1,
+        keywords1: req.body.result.keywords1,
+        answer1: req.body.result.answer1,
+        audioURL1: req.body.result.audioURL1,
+        question2: req.body.result.question2,
+        keywords2: req.body.result.keywords2,
+        answer2: req.body.result.answer2,
+        audioURL2: req.body.result.audioURL2,
       });
 
       const result = await newResult.save();

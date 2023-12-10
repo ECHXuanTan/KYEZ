@@ -71,3 +71,21 @@ export async function getTokenOrRefresh() {
         return { authToken: speechToken.slice(idx + 1), region: speechToken.slice(0, idx) };
     }
 }
+
+export async function getPhrase(text) {
+    try {
+        const res = await axios.post('/api/tests/phrase',
+            {text},
+            {
+            headers: {
+                'Content-type': 'application/json'
+            }
+         });
+        const phrase = res.data;
+        console.log("res.data", res.data);
+        return { phrase_list: phrase};
+    } catch (err) {
+        console.log(err.response.data);
+        return { authToken: null, error: err.response.data };
+    }
+}

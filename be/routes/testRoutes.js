@@ -23,4 +23,28 @@ const testRouter = express.Router();
         }
     });
 
+    testRouter.post('/phrase', async (req, res, next) => {
+        res.setHeader('Content-Type', 'application/json');
+        
+        const receivedText = req.body.text;
+        // console.log("req.body.text",req.body.text )
+        const obj = { str: `${receivedText}` };
+        const reqStr = JSON.stringify(obj);
+            const headers = { 
+                headers: {
+                    'Content-Type': 'text/plain'
+                }
+            };
+      
+            try {
+                const phraseResponse = await axios.post(`https://texsmart.qq.com/api`, reqStr, headers);
+                res.send({ phrase: phraseResponse.data.phrase_list });
+                // console.log("phraseResponse.data",phraseResponse.data.phrase_list )
+            } catch (err) {
+                res.status(401).send('There was an error.');
+            }
+        
+      });
+
+
 export default testRouter;

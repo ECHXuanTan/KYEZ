@@ -29,7 +29,7 @@ app.use('/api/results', resultRouter);
 
 app.get('/api/get-speech-token', async (req, res, next) => {
   res.setHeader('Content-Type', 'application/json');
-  const speechKey = "bd9fcf67908045778b94103948c031de";
+  const speechKey = process.env.SPEECH_KEY;
   const speechRegion = "southeastasia";
   console.log("speechKey",speechKey )
   if (speechKey === 'paste-your-speech-key-here' || speechRegion === 'paste-your-speech-region-here') {

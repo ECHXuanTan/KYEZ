@@ -1,50 +1,50 @@
 import { useState, useEffect } from 'react';
-
+import { getPhrase } from '../actions/testActions';
 function Testcode() {
 
-  const [mediaRecorder, setMediaRecorder] = useState(null);  
-  const [audioURL, setAudioURL] = useState('');
+  
+  const [duplicates, setDuplicates] = useState([]);
+  const chineseText ="今天天气非常好,我们要好好地把握时间好好地出去玩一玩。我们可以去公园玩一玩或许可以去郊外踏青。你听到我是谁？如果如果天气继续这么好的话,我们晚上就在外面吃饭. 你听到我是谁？";
 
-  useEffect(() => {
-    navigator.mediaDevices.getUserMedia({ audio: true })
-      .then(stream => {
-        const recorder = new MediaRecorder(stream);
-        
-        recorder.addEventListener("dataavailable", event => {
-          setAudioURL(URL.createObjectURL(event.data));
-        });
+  const checkDuplicates = async () => {
+    const object = await getPhrase(chineseText)
 
-        setMediaRecorder(recorder);
+    const strs = object.phrase_list.phrase.map(p => p.str);
+
+      const wordCounts = {};
+
+      strs.forEach(word => {
+        let cleanedWord = word.replace(/[\s,.!?]/g,'');
+        if(!wordCounts[cleanedWord]) {
+          wordCounts[cleanedWord] = 0; 
+        }
+        wordCounts[cleanedWord]++;
       });
-  }, []);
-   
-  const toggleRecording = () => {
-    if(mediaRecorder.state === "recording") {
-      stopRecording();
-    } else {
-      startRecording();
-    }
+      
+      const duplicates = [];
+      
+      for(let word in wordCounts) {
+        if(wordCounts[word] > 1) {
+          duplicates.push(word); 
+        }
+      }
+      
+      const filteredWords = duplicates.filter(word => {
+        return word && // must not be empty string  
+               !/\s|\.|,|\?/.test(word); // no punctuation
+      });
+      console.log(filteredWords); 
+      setDuplicates(filteredWords);
   }
 
-  const startRecording = () => {
-    mediaRecorder.start();  
-  }
 
-  const stopRecording = () => {
-    mediaRecorder.stop();
-  }
 
   return (
     <div>
-      <i
-        className="info-icon"
-        onClick={toggleRecording}>
-        i  
-      </i>
-      
-      {audioURL && 
-        <audio controls src={audioURL} />
-      }
+     <button onClick={checkDuplicates}>A</button>
+     <p>
+        Duplicates: {duplicates.join(", ")}
+      </p>
     </div>
   );
 }
